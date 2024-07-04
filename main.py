@@ -1,20 +1,17 @@
-import json
+from cachetools import TTLCache
 import time
 import random
 import threading
-from googleapiclient.discovery import build
+# from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import db
-from auth import Authorize
-
-authResponse = Authorize('client_secret.json')
-credentials = authResponse.credentials
-
-# Building the youtube object:
-youtube = build('youtube', 'v3', credentials=credentials)
+import utils
+# from auth import Authorize
+from utils import youtube
 
 # Settings
-_delay = 1
+_delay = 5
+cache = TTLCache(maxsize=1000, ttl=300)  # Cache with TTL of 5 minutes
 
 
 def getLiveChatId(LIVE_STREAM_ID):
@@ -50,14 +47,21 @@ def getUserName(userId):
     userId: The user's YouTube channel ID
     return: User's Channel Name
     """
-    channelDetails = youtube.channels().list(
-        part="snippet",
-        id=userId,
-    )
-    response = channelDetails.execute()
-    # print(json.dumps(response, indent=2))
-    userName = response['items'][0]['snippet']['title']
-    return userName
+    if userId in cache:
+        return cache[userId]
+
+    try:
+        channelDetails = youtube.channels().list(
+            part="snippet",
+            id=userId,
+        )
+        response = channelDetails.execute()
+        userName = response['items'][0]['snippet']['title']
+        cache[userId] = userName
+        return userName
+    except HttpError as e:
+        print(f"An error occurred: {e}")
+        return None
 
 
 # print(getUserName("UC0YXSy_J8uTDEr7YX_-d-sg"))
@@ -114,6 +118,7 @@ def main():
 
     messagesList = []  # List of messages
     userIds = set()  # Set of unique user IDs
+    processedMessageIds = set()  # Set of unique message IDs to track processed messages
     lock = threading.Lock()
     flag = [False]  # A list containing a single boolean element
 
@@ -121,10 +126,9 @@ def main():
     timer_thread = threading.Thread(target=timer_function, args=(flag, lock))
     timer_thread.daemon = True  # Set as a daemon thread to run in the background
     timer_thread.start()
-
     while True:
         # bot replies to every message within past 1 second (can be changed to add delay):
-        time.sleep(1)
+        time.sleep(_delay)
 
         notReadMessages = []  # List of messages not yet read by bot
         # Fetching the messages from the live chat:
@@ -145,50 +149,74 @@ def main():
         #         userIds.add(userId)
         # else:
         for messages in allMessages:
+            messageId = messages['id']
             userId = messages['snippet']['authorChannelId']
             message = messages['snippet']['textMessageDetails']['messageText']
-            if (userId, message) not in messagesList:
-                notReadMessages.append((userId, message))
-            if (userId, message) not in messagesList:
-                messagesList.append((userId, message))
+            if messageId not in processedMessageIds:
+                notReadMessages.append((userId, message, messageId))
 
         for message in notReadMessages:
             userId = message[0]
             userIds.add(userId)
+            messageId = message[2]
+            processedMessageIds.add(messageId)
             message = message[1]
-            # print(userId)
             userName = getUserName(userId)
-            # print(f'\nUsername: {userName}')
+            splitMsg = str(message).split()
+            if str(message).lower() == "hello" or str(message).lower() == "hi":
+                sendReplyToLiveChat(
+                    liveChatId,
+                    "Hey " + userName + "! Welcome to the stream!")
+            print(str(message).lower())
+            if str(message).lower() == "!p":
+                print("REQUESTED TO CHECK POINTS")
+                db.CheckPermissions(userId)
+                points = db.checkGrubPoints(userId)
+                sendReplyToLiveChat(
+                    liveChatId,
+                    userName + ", you have " + str(points) + " points.")
 
-            # if (message == "Hello" or message == "hello" or message == "Hi" or message == "hi"):
-            #     sendReplyToLiveChat(
-            #         liveChatId,
-            #         "Hey " + userName + "! Welcome to the stream!")
-            #
+            if len(splitMsg) > 1 and splitMsg[0] == "!g":
+                db.CheckPermissions(userId)
+                if splitMsg[1].isdigit() or splitMsg[1].lower() == "all":
+                    amount = int(splitMsg[1]) if splitMsg[1].isdigit() else db.checkGrubPoints(userId)
+                    if db.checkGrubPoints(userId) < amount:
+                        response = f"{getUserName(userId)} Does not have enough points to gamble {amount}!"
+                        pass
+                    else:
+                        roll = random.randrange(1, 100)
+                        if 75 < roll < 99:
+                            reward = amount
+                            db.addGambleResults(userId, reward)
+                            response = f"{getUserName(userId)} rolled {roll} and won " + str(amount * 2)
+                            # print("user attempted to gamble value: " + str(amount) + " and won " + str(reward))
+                        elif roll >= 99:
+                            reward = amount * 9
+                            db.addGambleResults(userId, reward)
+                            response = f"{getUserName(userId)} rolled {roll} and won " + str(amount * 10)
+                            # print("user attempted to gamble value: " + str(amount) + " and won " + str(reward))
+                        else:
+                            reward = -amount
+                            db.addGambleResults(userId, reward)
+                            response = f"{getUserName(userId)} rolled {roll} and lost " + str(reward * -1)
+                            # print("user attempted to gamble value: " + str(amount) + " and lost " + str(reward))
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        response)
+                else:
+                    print("user failed to gamble due to errors")
+
             # if (message == "!discord" or message == "!disc"):
             #     discord_link = "https://discord.gg/"
             #     sendReplyToLiveChat(
             #         liveChatId,
             #         f'Join our discord! {discord_link}')
-            #
-            # if (message == "!random" or message == "!rand"):
-            #     dad_jokes = [
-            #         "Why do fathers take an extra pair of socks when they go golfing? In case they get a hole in one!",
-            #         "Dear Math, grow up and solve your own problems.",
-            #         "What has more letters than the alphabet? The post office!",
-            #         "Why are elevator jokes so classic and good? They work on so many levels!",
-            #         "What do you call a fake noodle? An impasta!",
-            #         "What do you call a belt made out of watches? A waist of time!",
-            #         "Why did the scarecrow win an award? Because he was outstanding in his field!",
-            #         "Why don't skeletons ever go trick or treating? Because they have no body to go with!",
-            #         "What's brown and sticky? A stick!"]
-            #     joke = random.choice(dad_jokes)
-            #     sendReplyToLiveChat(liveChatId, joke)
+
         # Check the flag to see if the 5 minutes have elapsed
         with lock:
             if flag[0]:
                 # 5 minutes have elapsed, process the chatters, reward points
-                print("ADDED 5 min grub points TO: ")
+                # print("ADDED 5 min grub points TO: ")
                 db.addGrubPoints(userIds)
                 flag[0] = False
                 # for userId in userIds:
