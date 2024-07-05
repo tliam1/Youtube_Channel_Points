@@ -6,7 +6,7 @@ import utils
 
 def connectDB():
     try:
-        cnx = mysql.connector.connect(user='root', password='password',
+        cnx = mysql.connector.connect(user='root', password='****',
                                       host='127.0.0.1',
                                       database='youtube_chat')
     except mysql.connector.Error as err:
@@ -18,6 +18,28 @@ def connectDB():
             print(err)
         return None
     return cnx
+
+
+def CheckHandle(userId):
+    con = connectDB()
+    if con and con.is_connected():
+        try:
+            with con.cursor() as cursor:
+                query = f"SELECT userName FROM gambleinfo WHERE userId = %s"
+                cursor.execute(query, (userId,))
+                result = cursor.fetchone()
+                if result:
+                    return result[0][0]
+                else:
+                    return None
+        except mysql.connector.Error as err:
+            print(err)
+        finally:
+            con.close()
+            return None
+    con.close()
+    return None
+
 
 def CheckPermissions(userId):
     con = connectDB()
@@ -45,6 +67,7 @@ def CheckPermissions(userId):
     else:
         print("Database connection failed")
         con.close()
+
 
 def addGrubPoints(userIds):
     con = connectDB()  # connect to db

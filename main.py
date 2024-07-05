@@ -1,4 +1,3 @@
-from cachetools import TTLCache
 import time
 import random
 import threading
@@ -11,7 +10,6 @@ from utils import youtube
 
 # Settings
 _delay = 5
-cache = TTLCache(maxsize=1000, ttl=300)  # Cache with TTL of 5 minutes
 
 
 def getLiveChatId(LIVE_STREAM_ID):
@@ -39,34 +37,6 @@ def getLiveChatId(LIVE_STREAM_ID):
         return None
 
 
-# Access user's channel Name:
-def getUserName(userId):
-    """
-    It takes a userId and returns the userName.
-
-    userId: The user's YouTube channel ID
-    return: User's Channel Name
-    """
-    if userId in cache:
-        return cache[userId]
-
-    try:
-        channelDetails = youtube.channels().list(
-            part="snippet",
-            id=userId,
-        )
-        response = channelDetails.execute()
-        userName = response['items'][0]['snippet']['title']
-        cache[userId] = userName
-        return userName
-    except HttpError as e:
-        print(f"An error occurred: {e}")
-        return None
-
-
-# print(getUserName("UC0YXSy_J8uTDEr7YX_-d-sg"))
-
-
 def sendReplyToLiveChat(liveChatId, message):
     """
     It takes a liveChatId and a message, and sends the message to the live chat.
@@ -86,7 +56,7 @@ def sendReplyToLiveChat(liveChatId, message):
             }
         }
     )
-    response = reply.execute()
+    reply.execute()
     print("Message sent!")
 
 
@@ -97,7 +67,7 @@ def getAllChatters(userIds):
     userIds: A set of unique user IDs
     return: A list of usernames
     """
-    usernames = [getUserName(userId) for userId in userIds]
+    usernames = [utils.getUserName(userId) for userId in userIds]
     return usernames
 
 
@@ -161,16 +131,12 @@ def main():
             messageId = message[2]
             processedMessageIds.add(messageId)
             message = message[1]
-            userName = getUserName(userId)
             splitMsg = str(message).split()
-            if str(message).lower() == "hello" or str(message).lower() == "hi":
-                sendReplyToLiveChat(
-                    liveChatId,
-                    "Hey " + userName + "! Welcome to the stream!")
-            print(str(message).lower())
+
             if str(message).lower() == "!p":
                 print("REQUESTED TO CHECK POINTS")
                 db.CheckPermissions(userId)
+                userName = utils.getUserName(userId)
                 points = db.checkGrubPoints(userId)
                 sendReplyToLiveChat(
                     liveChatId,
@@ -178,27 +144,28 @@ def main():
 
             if len(splitMsg) > 1 and splitMsg[0] == "!g":
                 db.CheckPermissions(userId)
+                userName = utils.getUserName(userId)
                 if splitMsg[1].isdigit() or splitMsg[1].lower() == "all":
                     amount = int(splitMsg[1]) if splitMsg[1].isdigit() else db.checkGrubPoints(userId)
                     if db.checkGrubPoints(userId) < amount:
-                        response = f"{getUserName(userId)} Does not have enough points to gamble {amount}!"
+                        response = f"{userName} Does not have enough points to gamble {amount}!"
                         pass
                     else:
                         roll = random.randrange(1, 100)
                         if 75 < roll < 99:
                             reward = amount
                             db.addGambleResults(userId, reward)
-                            response = f"{getUserName(userId)} rolled {roll} and won " + str(amount * 2)
+                            response = f"{userName} rolled {roll} and won " + str(amount * 2)
                             # print("user attempted to gamble value: " + str(amount) + " and won " + str(reward))
                         elif roll >= 99:
                             reward = amount * 9
                             db.addGambleResults(userId, reward)
-                            response = f"{getUserName(userId)} rolled {roll} and won " + str(amount * 10)
+                            response = f"{userName} rolled {roll} and won " + str(amount * 10)
                             # print("user attempted to gamble value: " + str(amount) + " and won " + str(reward))
                         else:
                             reward = -amount
                             db.addGambleResults(userId, reward)
-                            response = f"{getUserName(userId)} rolled {roll} and lost " + str(reward * -1)
+                            response = f"{userName} rolled {roll} and lost " + str(reward * -1)
                             # print("user attempted to gamble value: " + str(amount) + " and lost " + str(reward))
                     sendReplyToLiveChat(
                         liveChatId,

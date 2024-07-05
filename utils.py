@@ -1,5 +1,7 @@
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+
+import db
 from auth import Authorize
 
 authResponse = Authorize('client_secret.json')
@@ -8,6 +10,7 @@ credentials = authResponse.credentials
 # Building the youtube object:
 youtube = build('youtube', 'v3', credentials=credentials)
 
+
 def getUserName(userId):
     """
     It takes a userId and returns the userName.
@@ -15,6 +18,10 @@ def getUserName(userId):
     userId: The user's YouTube channel ID
     return: User's Channel Name
     """
+    userHandle = db.CheckHandle(userId)
+    if userHandle is not None:  # checks if key exists in cache
+        return userHandle
+
     channelDetails = youtube.channels().list(
         part="snippet",
         id=userId,
@@ -32,6 +39,11 @@ def getChannelHandle(userId):
     userId: The user's YouTube channel ID
     return: User's Channel Handle or 'No custom URL'
     """
+    # WARNING: THIS COULD CAUSE A CRASH!
+    userHandle = db.CheckHandle(userId)
+    if userHandle is not None:  # checks if key exists in cache
+        return userHandle
+
     try:
         channelDetails = youtube.channels().list(
             part="snippet",
