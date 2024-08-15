@@ -6,7 +6,7 @@ import utils
 
 def connectDB():
     try:
-        cnx = mysql.connector.connect(user='root', password='****',
+        cnx = mysql.connector.connect(user='root', password='*******',
                                       host='127.0.0.1',
                                       database='youtube_chat')
     except mysql.connector.Error as err:
@@ -29,8 +29,10 @@ def CheckHandle(userId):
                 cursor.execute(query, (userId,))
                 result = cursor.fetchone()
                 if result:
+                    con.close()
                     return result[0][0]
                 else:
+                    con.close()
                     return None
         except mysql.connector.Error as err:
             print(err)
@@ -40,6 +42,28 @@ def CheckHandle(userId):
     con.close()
     return None
 
+
+def CheckIfHandleExists(handle):
+    con = connectDB()
+    if con and con.is_connected():
+        try:
+            with con.cursor() as cursor:
+                query = f"SELECT userName FROM gambleinfo WHERE userId = %s"
+                cursor.execute(query, (handle,))
+                result = cursor.fetchone()
+                if result:
+                    con.close()
+                    return True
+                else:
+                    con.close()
+                    return False
+        except mysql.connector.Error as err:
+            print(err)
+        finally:
+            con.close()
+            return False
+    con.close()
+    return False
 
 def CheckPermissions(userId):
     con = connectDB()
@@ -83,7 +107,7 @@ def addGrubPoints(userIds):
                 existing_ids = {row[0] for row in cursor.fetchall()}
 
                 # Update grubPoints for existing users
-                update_query = "UPDATE gambleinfo SET grubPoints = grubPoints + 10 WHERE userID = %s"
+                update_query = "UPDATE gambleinfo SET grubPoints = grubPoints + 50 WHERE userID = %s"
                 for user_id in existing_ids:
                     cursor.execute(update_query, (user_id,))
 
@@ -121,6 +145,7 @@ def checkGrubPoints(userId):
                     print(f"No grub points found for user {userId}")
         except mysql.connector.Error as err:
             print(f"Error: {err}")
+            con.close()
             return 0
         finally:
             con.close()
@@ -140,6 +165,28 @@ def addGambleResults(userId, resultValue):
             con.commit()  # Commit the transaction
         except mysql.connector.Error as err:
             print(f"Error: {err}")
+            con.close()
+            return 0
+        finally:
+            con.close()
+    else:
+        con.close()
+        print("addGambleResults: Database connection failed")
+
+
+def donatePoints(donor, acceptor, value):
+    con = connectDB()
+    if con and con.is_connected():
+        try:
+            with con.cursor() as cursor:
+                query = "UPDATE gambleinfo SET grubPoints = grubPoints + %s WHERE userID = %s"
+                cursor.execute(query, (-value, donor))
+                query2 = "UPDATE gambleinfo SET grubPoints = grubPoints + %s WHERE userName = %s"
+                cursor.execute(query2, (value, acceptor))
+            con.commit()  # Commit the transaction
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            con.close()
             return 0
         finally:
             con.close()

@@ -1,4 +1,5 @@
 import time
+from datetime import datetime, timezone
 import random
 import threading
 # from googleapiclient.discovery import build
@@ -82,6 +83,7 @@ def main():
     # db.connectDB() remember we need to close this too
     LIVE_STREAM_ID = input("Enter the live stream ID: ")
     liveChatId = getLiveChatId(LIVE_STREAM_ID)
+    bot_start_time = datetime.now(timezone.utc)
     if not liveChatId:
         print("Invalid live stream ID or no active live chat found.")
         return
@@ -122,7 +124,8 @@ def main():
             messageId = messages['id']
             userId = messages['snippet']['authorChannelId']
             message = messages['snippet']['textMessageDetails']['messageText']
-            if messageId not in processedMessageIds:
+            message_time = datetime.strptime(messages['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+            if messageId not in processedMessageIds and message_time > bot_start_time:
                 notReadMessages.append((userId, message, messageId))
 
         for message in notReadMessages:
@@ -152,7 +155,7 @@ def main():
                         pass
                     else:
                         roll = random.randrange(1, 100)
-                        if 75 < roll < 99:
+                        if 75 <= roll < 99:
                             reward = amount
                             db.addGambleResults(userId, reward)
                             response = f"{userName} rolled {roll} and won " + str(amount * 2)
@@ -172,6 +175,18 @@ def main():
                         response)
                 else:
                     print("user failed to gamble due to errors")
+
+            if len(splitMsg) > 2 and splitMsg[0] == "!d":
+                db.CheckPermissions(userId)
+                # donorUserName = utils.getUserName(userId)
+                if db.CheckIfHandleExists(splitMsg[1]) and splitMsg[2].isdigit():
+                    amount = int(splitMsg[2])
+                    db.donatePoints(userId, splitMsg[1], amount)
+                    pass
+                else:
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        "Invalid acceptor handle. Go to the channel and check their @name and try again")
 
             # if (message == "!discord" or message == "!disc"):
             #     discord_link = "https://discord.gg/"
