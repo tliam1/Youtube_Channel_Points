@@ -6,7 +6,9 @@ import utils
 
 def connectDB():
     try:
-        cnx = mysql.connector.connect(user='root', password='*******',
+        with open('password.txt', 'r') as f:
+            password = f.read()
+        cnx = mysql.connector.connect(user='root', password=password,
                                       host='127.0.0.1',
                                       database='youtube_chat')
     except mysql.connector.Error as err:
@@ -20,7 +22,8 @@ def connectDB():
     return cnx
 
 
-def CheckHandle(userId):
+def CheckHandle(userId: str):
+    # print(f"userid is {userId}, strip userID: {userId.strip()}")
     con = connectDB()
     if con and con.is_connected():
         try:
@@ -30,25 +33,23 @@ def CheckHandle(userId):
                 result = cursor.fetchone()
                 if result:
                     con.close()
-                    return result[0][0]
-                else:
-                    con.close()
-                    return None
+                    # print(f"FOUND RESULT: {result}")
+                    return result[0]
         except mysql.connector.Error as err:
             print(err)
         finally:
             con.close()
-            return None
     con.close()
     return None
 
 
-def CheckIfHandleExists(handle):
+def CheckIfHandleExists(handle: str):
+    handle = handle.strip()
     con = connectDB()
     if con and con.is_connected():
         try:
             with con.cursor() as cursor:
-                query = f"SELECT userName FROM gambleinfo WHERE userId = %s"
+                query = f"SELECT userName FROM gambleinfo WHERE userName = %s"
                 cursor.execute(query, (handle,))
                 result = cursor.fetchone()
                 if result:
@@ -61,7 +62,6 @@ def CheckIfHandleExists(handle):
             print(err)
         finally:
             con.close()
-            return False
     con.close()
     return False
 
@@ -183,6 +183,24 @@ def donatePoints(donor, acceptor, value):
                 cursor.execute(query, (-value, donor))
                 query2 = "UPDATE gambleinfo SET grubPoints = grubPoints + %s WHERE userName = %s"
                 cursor.execute(query2, (value, acceptor))
+            con.commit()  # Commit the transaction
+        except mysql.connector.Error as err:
+            print(f"Error: {err}")
+            con.close()
+            return 0
+        finally:
+            con.close()
+    else:
+        con.close()
+        print("addGambleResults: Database connection failed")
+
+def RedeemReward(userId, cost):
+    con = connectDB()
+    if con and con.is_connected():
+        try:
+            with con.cursor() as cursor:
+                query = "UPDATE gambleinfo SET grubPoints = grubPoints + %s WHERE userID = %s"
+                cursor.execute(query, (-cost, userId))
             con.commit()  # Commit the transaction
         except mysql.connector.Error as err:
             print(f"Error: {err}")
