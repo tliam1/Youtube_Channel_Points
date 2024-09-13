@@ -8,6 +8,7 @@ import db
 import utils
 # from auth import Authorize
 from utils import youtube
+import rewards
 
 # Settings
 _delay = 5
@@ -83,7 +84,10 @@ def main():
     # db.connectDB() remember we need to close this too
     LIVE_STREAM_ID = input("Enter the live stream ID: ")
     liveChatId = getLiveChatId(LIVE_STREAM_ID)
-    bot_start_time = datetime.now(timezone.utc)
+
+    # bot_start_time = datetime.now(timezone.utc)
+    skipFirstBatch = True  # just to ignore the first flow of messages if you started bot mid stream
+
     if not liveChatId:
         print("Invalid live stream ID or no active live chat found.")
         return
@@ -124,8 +128,8 @@ def main():
             messageId = messages['id']
             userId = messages['snippet']['authorChannelId']
             message = messages['snippet']['textMessageDetails']['messageText']
-            message_time = datetime.strptime(messages['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-            if messageId not in processedMessageIds and message_time > bot_start_time:
+            # message_time = datetime.strptime(messages['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
+            if messageId not in processedMessageIds: # and message_time > bot_start_time
                 notReadMessages.append((userId, message, messageId))
 
         for message in notReadMessages:
@@ -135,6 +139,9 @@ def main():
             processedMessageIds.add(messageId)
             message = message[1]
             splitMsg = str(message).split()
+
+            if skipFirstBatch:
+                continue
 
             if str(message).lower() == "!p":
                 print("REQUESTED TO CHECK POINTS")
@@ -178,15 +185,65 @@ def main():
 
             if len(splitMsg) > 2 and splitMsg[0] == "!d":
                 db.CheckPermissions(userId)
+                userName = utils.getUserName(userId)
                 # donorUserName = utils.getUserName(userId)
+                # print(db.CheckIfHandleExists(splitMsg[1]))
+                # print(splitMsg[2].isdigit())
+                # print(splitMsg[2])
+                # print(splitMsg[1])
+                # print(userId)
+                # print(db.CheckHandle(userId))
                 if db.CheckIfHandleExists(splitMsg[1]) and splitMsg[2].isdigit():
                     amount = int(splitMsg[2])
-                    db.donatePoints(userId, splitMsg[1], amount)
-                    pass
+                    if db.checkGrubPoints(userId) < amount:
+                        response = f"{userName} Does not have enough points to donate {splitMsg[2]}!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f"{response}")
+                        pass
+                    elif db.CheckHandle(userId) == splitMsg[1].strip():
+                        response = f"{userName} cannot donate points to themselves!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f"{response}")
+                        pass
+                    else:
+                        db.donatePoints(userId, splitMsg[1], amount)
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f"@{userName} donated {splitMsg[2]} points to {splitMsg[1]}!")
+                        pass
                 else:
                     sendReplyToLiveChat(
                         liveChatId,
-                        "Invalid acceptor handle. Go to the channel and check their @name and try again")
+                        "Invalid acceptor handle or given value is not a digit. Go to the channel and check their @name (you need the @ sign) and try again")
+
+            if splitMsg[0] == "!r":
+                userName = utils.getUserName(userId)
+                if len(splitMsg) == 1:
+                    response = rewards.rewards_to_string()
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f'\"{response}\"')
+                elif rewards.is_valid_reward(splitMsg[1]) and db.checkGrubPoints(userId) >= int(rewards.rewards[splitMsg[1]]["price"]):
+                    description = rewards.rewards[splitMsg[1]]["description"]
+                    cost = int(rewards.rewards[splitMsg[1]]["price"])
+                    db.RedeemReward(userId=userId, cost=cost)
+                    response = f"{userName} has redeemed {splitMsg[1]}: {description}"
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f"{response}")
+                elif rewards.is_valid_reward(splitMsg[1]) and db.checkGrubPoints(userId) < int(rewards.rewards[splitMsg[1]]["price"]):
+                    response = f"{userName} doesn't have enough grub points to redeem {splitMsg[1]}!"
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f"{response}")
+                else:
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f"{userName}: Error retrieving reward {splitMsg[1]}. Make sure this reward exists by typing the command \"!r\"")
+                    # print a description of all redeems
+                    pass
 
             # if (message == "!discord" or message == "!disc"):
             #     discord_link = "https://discord.gg/"
@@ -204,6 +261,8 @@ def main():
                 # for userId in userIds:
                 #     print(getUserName(userId))
                 userIds = set()
+
+        skipFirstBatch = False # back to processing all messages
 
 
 if __name__ == "__main__":
