@@ -88,5 +88,6 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 - Clean up main.py
 - Add requirements.txt
 - Adding some form of PVP with grub points as a reward
+- Anti-spam (global command cooldown)
   
 For questions or issues, feel free to reach out!
