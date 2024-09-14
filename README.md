@@ -47,7 +47,7 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 
 4. **Configuration**:
     - Make a config file for any credentials + get the client_secret.json from Google Dev Console 
-    - Fill in your MySQL credentials and YouTube API key inside `your_config.py`:
+    - Fill in your MySQL credentials inside `your_config.py`:
     ```python
     MYSQL_USER = "your_mysql_username"
     MYSQL_PASSWORD = "your_mysql_password"
