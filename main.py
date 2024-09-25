@@ -9,9 +9,13 @@ import utils
 # from auth import Authorize
 from utils import youtube
 import rewards
+from pot import Pot
 
 # Settings
 _delay = 5
+
+# Pot
+curPot = Pot(random_number=random.randrange(1, 100))
 
 
 def getLiveChatId(LIVE_STREAM_ID):
@@ -80,6 +84,15 @@ def timer_function(flag, lock):
             flag[0] = True
 
 
+def pot_timer_function(flag, lock):
+    while True:
+        time.sleep(1)  # Decrease Bot
+        curPot.decrease_pot_duration()
+        if curPot.get_duration() <= 0:
+            with lock:
+                flag[0] = True
+
+
 def main():
     # db.connectDB() remember we need to close this too
     LIVE_STREAM_ID = input("Enter the live stream ID: ")
@@ -95,6 +108,8 @@ def main():
     messagesList = []  # List of messages
     userIds = set()  # Set of unique user IDs
     processedMessageIds = set()  # Set of unique message IDs to track processed messages
+
+
     lock = threading.Lock()
     flag = [False]  # A list containing a single boolean element
 
@@ -102,6 +117,15 @@ def main():
     timer_thread = threading.Thread(target=timer_function, args=(flag, lock))
     timer_thread.daemon = True  # Set as a daemon thread to run in the background
     timer_thread.start()
+
+    pot_lock = threading.Lock()
+    pot_flag = [False]  # New flag for pot timer
+
+    # Start the pot timer function in another thread
+    pot_timer_thread = threading.Thread(target=pot_timer_function, args=(pot_flag, pot_lock))
+    pot_timer_thread.daemon = True  # Set as a daemon thread
+    pot_timer_thread.start()
+
     while True:
         # bot replies to every message within past 1 second (can be changed to add delay):
         time.sleep(_delay)
@@ -129,7 +153,7 @@ def main():
             userId = messages['snippet']['authorChannelId']
             message = messages['snippet']['textMessageDetails']['messageText']
             # message_time = datetime.strptime(messages['snippet']['publishedAt'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc)
-            if messageId not in processedMessageIds: # and message_time > bot_start_time
+            if messageId not in processedMessageIds:  # and message_time > bot_start_time
                 notReadMessages.append((userId, message, messageId))
 
         for message in notReadMessages:
@@ -245,6 +269,15 @@ def main():
                     # print a description of all redeems
                     pass
 
+            if splitMsg[0] == "!pot":
+                userName = utils.getUserName(userId)
+                if len(splitMsg) == 1:
+                    response = f"Current Pot Value: {curPot.get_value()}. Time Left: {curPot.get_duration()} sec"
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f'\"{response}\"')
+
+
             # if (message == "!discord" or message == "!disc"):
             #     discord_link = "https://discord.gg/"
             #     sendReplyToLiveChat(
@@ -262,7 +295,17 @@ def main():
                 #     print(getUserName(userId))
                 userIds = set()
 
-        skipFirstBatch = False # back to processing all messages
+        # Check the pot flag to see if the pot timer has finished
+        with pot_lock:
+            if pot_flag[0]:
+                # print("Pot timer has finished!")
+                # Calc winnings and Reset the pot
+                pot_value = curPot.get_value()
+                pot_players = curPot.get_players()
+                curPot.reset(random_number=random.randrange(1, 100))
+                pot_flag[0] = False
+
+        skipFirstBatch = False  # back to processing all messages
 
 
 if __name__ == "__main__":
