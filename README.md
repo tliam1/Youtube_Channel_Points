@@ -2,7 +2,7 @@
 
 This bot tracks user activity in your YouTube live streams and rewards viewers with "grub points." The system includes gambling features and will eventually incorporate trading and redemption systems.
 
-# NOT A COMPLETE PROJECT, CODE IS MESSY!
+# NOT A COMPLETE PROJECT. CODE IS MESSY!
 
 ## Features:
 - **Grub Points**: Viewers earn points by interacting in live chats. Payout amount and frequency are adjustable.
