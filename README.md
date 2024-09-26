@@ -91,5 +91,6 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 - Add requirements.txt
 - Adding some form of PVP with grub points as a reward
 - Anti-spam (global command cooldown)
+- For the love of all that is good, write some validation functions 
   
 For questions or issues, feel free to reach out!
