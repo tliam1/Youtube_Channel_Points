@@ -10,7 +10,7 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 - **Trading**: Viewers can donate points to others using chat commands.
 - **Redeems**: Viewers can use their points to redeem a specified prize.
 - **Multi-chatter bets**: Viewers bet to see who's guess is closest to a random value.
-- **Planned Features**: N/A (currently polishing code)
+- **Planned Features**: See below
 
 ## Installation Instructions
 
