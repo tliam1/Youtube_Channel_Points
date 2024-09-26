@@ -5,12 +5,12 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 # NOT A COMPLETE PROJECT. CODE IS MESSY!
 
 ## Features:
-- **Grub Points**: Viewers earn points by interacting in live chats. Payout amount and frequency are adjustable.
+- **Grub Points**: Viewers earn points by interacting in live chats. The payout amount and frequency are adjustable.
 - **Gambling**: Viewers can gamble their points using chat commands.
 - **Trading**: Viewers can donate points to others using chat commands.
 - **Redeems**: Viewers can use their points to redeem a specified prize.
 - **Multi-chatter bets**: Viewers bet to see who's guess is closest to a random value.
-- **Planned Features**: See below
+- **Planned Features**: At bottom of readme
 
 ## Installation Instructions
 
