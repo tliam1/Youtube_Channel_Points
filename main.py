@@ -340,20 +340,20 @@ def main():
                     print("<ERROR>: POT LOCK ISSUES")
                     curPot.reset(random_number=random.randrange(1, 100))
                     pot_flag[0] = False
-                    return
-                pot_players = curPot.get_players()
-                pot_rewards = curPot.payout()
-                for player in pot_players:
-                    earnings = pot_rewards[player['userID']]
-                    db.addGambleResults(player['userID'], earnings)
-                    # response = f"{userName} rolled {roll} and lost " + str(reward * -1)
-                winner = curPot.closest_player()
-                response = f"Pot Finished! Closest user was: {winner['player']} with value {winner['guess']}. Target Value: {curPot.get_pot_random_number()}"
-                sendReplyToLiveChat(
-                    liveChatId,
-                    f"{response}")
-                curPot.reset(random_number=random.randrange(1, 100))
-                pot_flag[0] = False
+                else:
+                    pot_players = curPot.get_players()
+                    pot_rewards = curPot.payout()
+                    for player in pot_players:
+                        earnings = pot_rewards[player['userID']]
+                        db.addGambleResults(player['userID'], earnings)
+                        # response = f"{userName} rolled {roll} and lost " + str(reward * -1)
+                    winner = curPot.closest_player()
+                    response = f"Pot Finished! Closest user was: {winner['player']} with value {winner['guess']}. Target Value: {curPot.get_pot_random_number()}"
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f"{response}")
+                    curPot.reset(random_number=random.randrange(1, 100))
+                    pot_flag[0] = False
 
         skipFirstBatch = False  # back to processing all messages
 

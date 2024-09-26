@@ -45,7 +45,7 @@ class Pot:
         total_closeness = sum(1 / (abs(player['guess'] - self.winning_number) + 1) for player in self.pot_players)
 
         # total contribution
-        total_contribution = sum(player['contribution'] for player in self.pot_players)
+        total_contribution = self.get_value()
 
         payouts = {}
 
@@ -57,7 +57,7 @@ class Pot:
             contribution_factor = player['contribution'] / total_contribution if total_contribution > 0 else 0
 
             # Proportional payout: based on closeness and contribution
-            payout_percentage = (closeness_factor / total_closeness) * 0.7 + (contribution_factor * 0.3)
+            payout_percentage = (closeness_factor / total_closeness) * 0.7 + (contribution_factor * 0.2)
 
             payout_amount = round(self.pot_value * payout_percentage)
 
