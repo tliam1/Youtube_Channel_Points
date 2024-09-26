@@ -272,11 +272,46 @@ def main():
             if splitMsg[0] == "!pot":
                 userName = utils.getUserName(userId)
                 if len(splitMsg) == 1:
-                    response = f"Current Pot Value: {curPot.get_value()}. Time Left: {curPot.get_duration()} sec"
+                    # print(curPot.get_value())
+                    # print(curPot.get_duration())
                     sendReplyToLiveChat(
                         liveChatId,
-                        f'\"{response}\"')
-
+                        f"Current Pot Value: {curPot.get_value()}. Time Left: {curPot.get_duration()} sec.")
+                    # To join enter the command !pot (guess) (points). Pot refreshes every 5 minutes. Points earned are determined by the size of the pot and how close you are to a random number (1-100). Good Luck!
+                elif len(splitMsg) == 2 and splitMsg[1].lower() == "help":
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        f"To join enter the command !pot (guess) (points). Pot refreshes every 5 minutes. Points earned are determined by the size of the pot and how close you are to a random number (1-100).")
+                elif len(splitMsg) == 3 and splitMsg[1].isdigit() and splitMsg[2].isdigit():
+                    amount = int(splitMsg[2])
+                    guess = int(splitMsg[1])
+                    if db.checkGrubPoints(userId) < amount:
+                        response = f"{userName} does not have enough Grub to enter {amount} into the pot!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f'{response}')
+                    elif guess > 100 or guess < 0:
+                        response = f"{userName}, pot only accepts values between 1 and 100!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f'{response}')
+                    elif curPot.player_exists(userID=userId):
+                        response = f"{userName} has already entered this pot!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f'{response}')
+                    else:
+                        curPot.add_player(player=userName, guess_number=guess, userID=userId, contribution=amount)
+                        curPot.add_value(val=amount)
+                        db.addGambleResults(userId, -amount)
+                        response = f"{userName} added {amount} to the pot! New pot size of {curPot.get_value()}!"
+                        sendReplyToLiveChat(
+                            liveChatId,
+                            f'{response}')
+                else:
+                    sendReplyToLiveChat(
+                        liveChatId,
+                        "Invalid parameters. Please type !pot to see how the command works!")
 
             # if (message == "!discord" or message == "!disc"):
             #     discord_link = "https://discord.gg/"
@@ -300,8 +335,23 @@ def main():
             if pot_flag[0]:
                 # print("Pot timer has finished!")
                 # Calc winnings and Reset the pot
-                pot_value = curPot.get_value()
+                winner = curPot.closest_player()
+                if winner is None:
+                    print("<ERROR>: POT LOCK ISSUES")
+                    curPot.reset(random_number=random.randrange(1, 100))
+                    pot_flag[0] = False
+                    return
                 pot_players = curPot.get_players()
+                pot_rewards = curPot.payout()
+                for player in pot_players:
+                    earnings = pot_rewards[player['userID']]
+                    db.addGambleResults(player['userID'], earnings)
+                    # response = f"{userName} rolled {roll} and lost " + str(reward * -1)
+                winner = curPot.closest_player()
+                response = f"Pot Finished! Closest user was: {winner['player']} with value {winner['guess']}. Target Value: {curPot.get_pot_random_number()}"
+                sendReplyToLiveChat(
+                    liveChatId,
+                    f"{response}")
                 curPot.reset(random_number=random.randrange(1, 100))
                 pot_flag[0] = False
 

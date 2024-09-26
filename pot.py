@@ -1,21 +1,37 @@
 class Pot:
     def __init__(self, random_number: int):
         self.pot_players = []  # List of dictionaries to store player data
-        self.pot_value = 0.0
+        self.pot_value = 0
         self.pot_duration = 5 * 60  # minutes
         self.winning_number = random_number
 
-    def add_player(self, player: str, guess_number: int, contribution: float):
+    def player_exists(self, userID: str) -> bool:
+        return any(player['userID'] == userID for player in self.pot_players)
+
+    def get_pot_random_number(self) -> int:
+        return self.winning_number
+
+    def add_player(self, player: str, guess_number: int, contribution: int, userID: str):
         self.pot_players.append({
             'player': player,
             'guess': guess_number,
-            'contribution': contribution
+            'contribution': contribution,
+            'userID': userID
         })
 
-    def add_value(self, val: float):
+    def closest_player(self) -> dict | None:
+        if not self.pot_players:
+            return None
+
+        # Find the player with the minimum difference from the winning number by using a lambda function
+        closest = min(self.pot_players, key=lambda player: abs(player['guess'] - self.winning_number))
+
+        return closest
+
+    def add_value(self, val: int):
         self.pot_value += val
 
-    def get_value(self) -> float:
+    def get_value(self) -> int:
         return self.pot_value
 
     def reset(self, random_number: int):
@@ -43,9 +59,9 @@ class Pot:
             # Proportional payout: based on closeness and contribution
             payout_percentage = (closeness_factor / total_closeness) * 0.7 + (contribution_factor * 0.3)
 
-            payout_amount = self.pot_value * payout_percentage
+            payout_amount = round(self.pot_value * payout_percentage)
 
-            payouts[player['player']] = payout_amount
+            payouts[player['userID']] = payout_amount
 
         return payouts
 
