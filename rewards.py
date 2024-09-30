@@ -1,4 +1,5 @@
 import json
+import pyttsx3
 
 rewards = {
     "hydrate": {
@@ -23,7 +24,13 @@ reward_callables = {
 
 
 def call_TTS(msg):
-    pass
+    engine = pyttsx3.init()
+    voices = engine.getProperty('voices')
+    engine.setProperty('voice', voices[0].id)
+    engine.setProperty('rate', 150)
+    engine.setProperty('volume', 0.75)
+    engine.say(msg)
+    engine.runAndWait()
 
 
 def handle_reward(reward_name, *args):

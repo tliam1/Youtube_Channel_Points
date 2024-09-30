@@ -94,6 +94,7 @@ def pot_timer_function(flag, lock):
 
 
 def main():
+    # rewards.call_TTS("Testing")
     # db.connectDB() remember we need to close this too
     LIVE_STREAM_ID = input("Enter the live stream ID: ")
     liveChatId = getLiveChatId(LIVE_STREAM_ID)
@@ -210,13 +211,6 @@ def main():
             if len(splitMsg) > 2 and splitMsg[0] == "!d":
                 db.CheckPermissions(userId)
                 userName = utils.getUserName(userId)
-                # donorUserName = utils.getUserName(userId)
-                # print(db.CheckIfHandleExists(splitMsg[1]))
-                # print(splitMsg[2].isdigit())
-                # print(splitMsg[2])
-                # print(splitMsg[1])
-                # print(userId)
-                # print(db.CheckHandle(userId))
                 if db.CheckIfHandleExists(splitMsg[1]) and splitMsg[2].isdigit():
                     amount = int(splitMsg[2])
                     if db.checkGrubPoints(userId) < amount:
@@ -252,6 +246,8 @@ def main():
                 elif rewards.is_valid_reward(splitMsg[1]) and db.checkGrubPoints(userId) >= int(rewards.rewards[splitMsg[1]]["price"]):
                     description = rewards.rewards[splitMsg[1]]["description"]
                     cost = int(rewards.rewards[splitMsg[1]]["price"])
+                    if len(splitMsg) > 2:
+                        rewards.handle_reward(splitMsg[1], splitMsg[2:(len(splitMsg))])
                     db.RedeemReward(userId=userId, cost=cost)
                     response = f"{userName} has redeemed {splitMsg[1]}: {description}"
                     sendReplyToLiveChat(
