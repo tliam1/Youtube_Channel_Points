@@ -10,6 +10,7 @@ import utils
 from utils import youtube
 import rewards
 from pot import Pot
+import swearCheck
 
 # Settings
 _delay = 5
@@ -246,7 +247,7 @@ def main():
                 elif rewards.is_valid_reward(splitMsg[1]) and db.checkGrubPoints(userId) >= int(rewards.rewards[splitMsg[1]]["price"]):
                     description = rewards.rewards[splitMsg[1]]["description"]
                     cost = int(rewards.rewards[splitMsg[1]]["price"])
-                    if len(splitMsg) > 2:
+                    if len(splitMsg) > 2 and swearCheck.check_string_for_swears(splitMsg[2:(len(splitMsg))]):
                         rewards.handle_reward(splitMsg[1], splitMsg[2:(len(splitMsg))])
                     db.RedeemReward(userId=userId, cost=cost)
                     response = f"{userName} has redeemed {splitMsg[1]}: {description}"

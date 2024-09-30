@@ -28,7 +28,7 @@ def call_TTS(msg):
     voices = engine.getProperty('voices')
     engine.setProperty('voice', voices[0].id)
     engine.setProperty('rate', 150)
-    engine.setProperty('volume', 0.75)
+    engine.setProperty('volume', 1)
     engine.say(msg)
     engine.runAndWait()
 
