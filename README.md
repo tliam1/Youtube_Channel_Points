@@ -10,6 +10,7 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 - **Trading**: Viewers can donate points to others using chat commands.
 - **Redeems**: Viewers can use their points to redeem a specified prize.
 - **Multi-chatter bets**: Viewers bet to see who's guess is closest to a random value.
+- **Text-To-Speech**: Viewers can interact to the stream using TTS via point redeems
 - **Planned Features**: At bottom of readme
 
 ## Installation Instructions
@@ -92,6 +93,7 @@ This bot tracks user activity in your YouTube live streams and rewards viewers w
 - Add requirements.txt
 - Adding some form of PVP with grub points as a reward
 - Anti-spam (global command cooldown)
+- Allow users to play Audio on the stream
 - For the love of all that is good, write some validation functions 
   
 For questions or issues, feel free to reach out!
